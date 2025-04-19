@@ -2,12 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
+#include "rand_malloc.h"
+
+bool proper_memory_allocation = true;
 
 void reverse_string(char *string)
 {
   size_t length = strlen(string);
   size_t middle = length / 2;
-  size_t temp;
+  char temp;
 
   // Swaps characters at the beginning of the string with their corresponding 
   // character at the end of the string, e.g. the first character with the 
@@ -25,6 +29,7 @@ char* resize_buffer(char* buffer, size_t new_capacity)
 {
 	char* temp = realloc(buffer, new_capacity * sizeof(char));
 	if (NULL == temp) {
+		proper_memory_allocation = false;
 		free(buffer);
 		fprintf(stderr, "Memory reallocation error\n");
 		exit(1);
@@ -43,7 +48,7 @@ void fill_with_zeros(char **s, size_t zeros_to_add)
 		exit(1);
 	}
 	
-	for(int i=0; i < zeros_to_add; i++){
+	for(size_t i=0; i < zeros_to_add; i++){
 		buffer[i] = '0';
 	}
 	
@@ -129,7 +134,6 @@ char* binary_addition(char *s1, char *s2) {
 
 	reverse_string(res);
     return res;
-
 }
 
 char* get_line(void)
@@ -198,7 +202,7 @@ char* filter_binary(const char* line)
 	return binary_string;
 }
 
-void add_binary_string_to_array(char*** inputs, size_t* capacity, size_t* count, char* binary_string) {
+	void add_binary_string_to_array(char*** inputs, size_t* capacity, size_t* count, char* binary_string) {
     if (*count >= *capacity) {
         *capacity *= 2;
         *inputs = realloc(*inputs, *capacity * sizeof(char*));
@@ -212,15 +216,26 @@ void add_binary_string_to_array(char*** inputs, size_t* capacity, size_t* count,
 }
 
 void update_binary_sum_with_new_string(char** previous_line, char** binary_sum, char* binary_string) {
-     // If this is the first string, initialize the sum
+    // If this is the first string, initialize the sum
     if (*previous_line == NULL) {
         *previous_line = strdup(binary_string);
+        if (*binary_sum != NULL) {
+            free(*binary_sum); // Free the previous sum if it exists
+        }
+        *binary_sum = *previous_line; // Update the binary sum to the new string
     } else {
-        equalize_lengths(previous_line, &binary_string);
-        *binary_sum = binary_addition(*previous_line, binary_string);
-        free(*previous_line);
-        free(binary_string);
-        *previous_line = *binary_sum;
+        // Make a copy of binary_string to avoid modifying the original user input buffer
+        char *a = *previous_line;
+        char *b = strdup(binary_string);
+
+        equalize_lengths(&a, &b);
+        char *sum = binary_addition(a, b);
+        free(a);
+        free(b);
+
+        // store the new sum
+        *previous_line = sum;
+        *binary_sum   = sum;
     }
 }
 
@@ -235,18 +250,19 @@ void print_inputs(char** inputs, size_t count) {
 }
 
 void print_binary_sum(char* binary_sum, char* previous_line, size_t count) {
+	printf("Sum:\n");
     if (binary_sum != NULL) {
-        printf("Sum: %s\n", binary_sum);
+        printf("%s\n", binary_sum);
         free(binary_sum);
     } else if (count == 1) {
-        printf("Sum: %s\n", previous_line);
+        printf("%s\n", previous_line);
         free(previous_line);
     }
+}
     
-int main(void)
+int main()
 {
-	
-	int count = 0;
+	size_t count = 0;
 	char* line;
 	char* previous_line = NULL;
 	char* binary_sum = NULL;
@@ -272,10 +288,12 @@ int main(void)
 		}
 		add_binary_string_to_array(&inputs, &capacity_of_strings, &count, binary_string);
         update_binary_sum_with_new_string(&previous_line, &binary_sum, binary_string);
+   
 	}
 	
-	print_inputs(inputs, count);
 	print_binary_sum(binary_sum, previous_line, count);
+	print_inputs(inputs, count);
+	
 
 	return 0;
 }
