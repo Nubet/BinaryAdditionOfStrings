@@ -8,7 +8,7 @@
 struct arena {
     void* mem_block;
     size_t mem_size;
-    void* mem_ptr;
+    void* mem_ptr; // next‐free pointer to the very start of the block.
 };
 
 void arena_init(struct arena* arena, size_t size);
@@ -28,12 +28,24 @@ void arena_init(struct arena* arena, size_t size) {
 
 void* arena_alloc(struct arena* arena, size_t size) {
     /* align to pointer size */
-    size = (size + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
-    if ((char*)arena->mem_ptr + size > (char*)arena->mem_block + arena->mem_size) {
-        arena_free(arena);
-        fprintf(stderr, "Arena out of memory\n");
-        exit(1);
+    //size = (size + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
+
+    size_t in_use = (char*)arena->mem_ptr - (char*)arena->mem_block;
+    size_t need = in_use + size;
+    if (need > arena->mem_size) {
+        size_t new_size = arena->mem_size ? arena->mem_size : 1024;
+        while (new_size < need) new_size *= 2;
+        char* new_block = realloc(arena->mem_block, new_size);
+        if (!new_block) {
+            arena_free(arena);
+            fprintf(stderr, "Arena out of memory (grow failed)\n");
+            exit(1);
+        }
+        arena->mem_ptr   = new_block + in_use;
+        arena->mem_block = new_block;
+        arena->mem_size  = new_size;
     }
+
     void* ptr = arena->mem_ptr;
     arena->mem_ptr = (char*)arena->mem_ptr + size;
     return ptr;
@@ -193,7 +205,7 @@ char* filter_binary(const char* line)
         }
         else if(!isspace((unsigned char)line[i])){
             arena_free(&GLOBAL_ARENA);
-            fprintf(stderr, "ONLY 0 AND 1 IN INPUT STREAM ARE ALLOWED \n");
+            fprintf(stderr, "ONLY 0 AND 1 IN_INPUT STREAM_ARE_ALLOWED \n");
             exit(1);
         }
     }
@@ -243,7 +255,7 @@ void print_binary_sum(char* binary_sum, char* previous_line, size_t count) {
 
 int main()
 {
-    arena_init(&GLOBAL_ARENA, 10000000);
+    arena_init(&GLOBAL_ARENA, 1024);
 
     size_t count = 0;
     char* line;
