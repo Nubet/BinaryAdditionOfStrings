@@ -13,7 +13,7 @@ C program that reads arbitrarily long binary numbers from standard input, filter
 ## Repository Structure
 
 ```plaintext
-BinaryAdder/
+BinaryAdditionOfStrings/
 ├── main.c            # Program entry, I/O loop, binary addition logic
 ├── rand_malloc.c     # Wrappers around standard allocators for error injection
 ├── rand_malloc.h     # Macro overrides for malloc/calloc/realloc
@@ -27,7 +27,7 @@ Requires: GCC (C11), Make
 
 ```bash
 git clone https://github.com/Nubet/BinaryAdditionOfStrings.git
-cd BinaryAdder
+cd BinaryAdditionOfStrings
 make  
 
 # Provide binary numbers separated by newlines in file or enter them manually line-by-line when compiling via IDE
